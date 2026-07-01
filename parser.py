@@ -1,4 +1,5 @@
 from pydantic import Field, BaseModel, model_validator, ValidationError
+from pydantic_core import to_jsonable_python
 from typing import Any, Optional
 import json
 import re
@@ -23,15 +24,15 @@ class Hub_MetaData(BaseModel):
 
 
 class Connections(BaseModel):
-    connection_name: str = Field(ge=1)
-    color: int = Field(ge=1)
-    max_link_capacity: Optional[int] = Field(ge=1)
+    connection_from: str = Field(min_length=1)
+    connection_to: str = Field(min_length=1)
+    max_link_capacity: Optional[int] = Field(default=None,ge=1)
 
 
 class Hub(BaseModel):
-    hub_cords: tuple[int, int]
     hub_name: str = Field(min_length=1, max_length=100)
-    hub_meta_data: Optional[Hub_MetaData] = Field(min_length=1, max_length=100)
+    hub_cords: tuple[int, int]
+    hub_meta_data:dict
 
 
 class MapData(BaseModel):
@@ -66,17 +67,18 @@ class MapData(BaseModel):
             if hub_t == HUBS.START:
                 main_data["start_hub_name"] = hub_name
                 main_data["start_hub_cords"] = hub_cord
-                main_data["start_hub_meta_data"] = vars(
-                    Hub_MetaData(zone=zone, max_drones=max_drones, color=color)
-                )
-                print(2, hub_name, hub_cords, color, max_drones, zone)
+                main_data["start_hub_meta_data"] = vars(Hub_MetaData(zone=zone, max_drones=max_drones, color=color))
             elif hub_t == HUBS.END:
                 main_data["end_hub_name"] = hub_name
                 main_data["end_hub"] = hub_cord
-                main_data["end_hub"] = vars(
-                    Hub_MetaData(zone=zone, max_drones=max_drones, color=color)
-                )
-                print(2, hub_name, hub_cords, color, max_drones, zone)
+                main_data["end_hub"] = vars(Hub_MetaData(zone=zone, max_drones=max_drones, color=color))
+            else:
+                metadata = vars(Hub_MetaData(zone=zone, max_drones=max_drones, color=color))
+                tmp = Hub(hub_name=hub_name,hub_cords=hub_cord,hub_meta_data=metadata)
+                hubs.append(tmp)
+        def load_connections_to_list(connections_lst:list[str],max_link_capacity:int | None) -> None:
+            conn = Connections(connection_from=connections_lst[0],connection_to=connections_lst[1],max_link_capacity=max_link_capacity)
+            connections.append(conn)
 
         try:
             with open(file_path, "r", encoding="utf-8") as file:
@@ -185,8 +187,27 @@ class MapData(BaseModel):
                             load_hubs_to_dict(
                                 hub_name, hub_cords, color, max_drones, zone, hub_t
                             )
-        except json.JSONDecodeError:
-            pass
+                    if "connection" in line:
+                        tmp = line.split(":")[1].split()
+                        connections_lst = tmp[0].split("-")
+                        max_link_capacity = None
+                        if len(tmp) > 2:
+                            errors.append(ParsingError(f"Too much data for connection {tmp[0]}"))
+                            continue
+                        if len(tmp) > 1:
+                            max_link_capacity_str = tmp[1]
+                            try:
+                                max_link_capacity = int(max_link_capacity_str.split("=")[1].replace("]",""))
+                            except ValueError:
+                                errors.append(ParsingError(f"max_link_capacity in {tmp[0]} is invalid"))
+                        #print(connections_lst,max_link_capacity)
+                        load_connections_to_list(connections_lst,max_link_capacity)
+            main_data["hubs"] = hubs
+            main_data["connections"] = connections
+            # clean_data = to_jsonable_python(main_data)
+            # print(json.dumps(clean_data, indent=2))
+        except (FileNotFoundError,PermissionError,IsADirectoryError,FileExistsError,UnicodeDecodeError) as e:
+            print(f"File Erorr: {e}")
 
 
 if __name__ == "__main__":
