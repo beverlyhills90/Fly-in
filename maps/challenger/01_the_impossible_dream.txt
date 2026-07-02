@@ -138,7 +138,7 @@ connection: overflow_hell1-overflow_hell2
 connection: overflow_hell2-overflow_hell3
 connection: overflow_hell4-overflow_hell5
 connection: overflow_hell5-overflow_hell6
-
+#'false_hope1': ['false_hope2', 'priority_trap1', 'priority_trap3']
 connection: overflow_hell3-false_hope1
 connection: overflow_hell6-false_hope1
 
