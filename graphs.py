@@ -4,13 +4,13 @@ from typing import Any, Optional
 import json
 import re
 from enum import Enum
-from parser import Hub,Connections,MapData
+from parser import Hub,Connection,MapData
 
 
 class Graph(BaseModel):
     zones: dict[str,Hub] = Field(default_factory=dict)
     adjacency:dict[str,list] = Field(default_factory=dict)
-    connections:dict[tuple,tuple] = Field(default_factory=dict)
+    connections:dict[tuple,"Connection"] = Field(default_factory=dict)
 
     @classmethod
     def load_from_map_data(cls,map_data:"MapData") -> None:
@@ -77,21 +77,48 @@ class Graph(BaseModel):
                 fr = conn.connection_from
                 to = conn.connection_to
                 key = (fr,to)
-                target_zone_1 = next((zone for zone in tmp if zone["hub_name"] == fr), None)
-                target_zone_2 = next((zone for zone in tmp if zone["hub_name"] == to), None)
-                value = (Hub.model_validate(target_zone_1),Hub.model_validate(target_zone_2))
-                connections_dict[key] = value
+                # target_zone_1 = next((zone for zone in tmp if zone["hub_name"] == fr), None)
+                # target_zone_2 = next((zone for zone in tmp if zone["hub_name"] == to), None)
+                # value = (Hub.model_validate(target_zone_1),Hub.model_validate(target_zone_2))
+                connections_dict[key] = conn
     
         load_adjacency()
         load_zones()
         load_connections()
         return cls(zones=zones_dict,adjacency=adjacency_dict,connections=connections_dict)
+    
+    def get_neighbors(self,zone_name:str) -> list[str]:
+        return self.adjacency.get(zone_name)
+    
+    def get_connection(self,from_name:str, to_name:str) -> "Connection":
+        return self.connections.get((from_name,to_name))
+    
+    def is_zone_available(self,zone_name:str, current_occupancy:int) -> bool:
+        target_zone = self.zones.get(zone_name)
+        target_zone_max_drones = target_zone.hub_meta_data.get("max_drones",None)
+        if target_zone_max_drones is None:
+            return True
+        elif target_zone_max_drones < current_occupancy:
+            return False
+        return True
+    
+    def is_connection_available(self,from_name:str, to_name:str, current_usage) -> bool:
+        target_connection = self.get_connection(from_name,to_name)
+        target_max_link_capacity = target_connection.max_link_capacity
+        if target_max_link_capacity is None:
+            return True
+        elif target_max_link_capacity < current_usage:
+            return False
+        return True
 
 
-
+#TODO am i need None in geter methods?
 #test Graphs
 if __name__ == "__main__":
     map_data = MapData.parsing_from_file("maps/challenger/01_the_impossible_dream.txt")
-    g = Graph().load_from_map_data(map_data)
-    print(g)
+    g:"Graph" = Graph().load_from_map_data(map_data)
+    #print(g.get_connection("overflow_hell3","false_hope1"))
+    #print(g.get_neighbors("overflow_hell3"))
+    #print(g.is_zone_available("priority_trap1",10))
+    print(g.is_connection_available("start","gate_hell1",2))
         

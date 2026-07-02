@@ -29,7 +29,7 @@ class Hub_MetaData(BaseModel):
             return "normal"
         return value
 
-class Connections(BaseModel):
+class Connection(BaseModel):
     connection_from: str = Field(min_length=1)
     connection_to: str = Field(min_length=1)
     max_link_capacity: Optional[int] = Field(default=None,ge=1)
@@ -50,7 +50,7 @@ class MapData(BaseModel):
     end_hub_name: str
     end_hub_meta_data: dict
     hubs: list[Hub]
-    connections: list[Connections]
+    connections: list[Connection]
 
     @classmethod
     def parsing_from_file(cls,file_path: str) -> "MapData":
@@ -101,7 +101,7 @@ class MapData(BaseModel):
             """
             Creates a new Connections model instance and appends it to the global connections list.
             """
-            conn = Connections(connection_from=connections_lst[0],connection_to=connections_lst[1],max_link_capacity=max_link_capacity)
+            conn = Connection(connection_from=connections_lst[0],connection_to=connections_lst[1],max_link_capacity=max_link_capacity)
             connections.append(conn)
 
         try:
