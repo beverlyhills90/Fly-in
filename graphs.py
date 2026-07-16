@@ -88,12 +88,24 @@ class Graph(BaseModel):
         return cls(zones=zones_dict,adjacency=adjacency_dict,connections=connections_dict)
     
     def get_neighbors(self,zone_name:str) -> list[str]:
+        """
+        Retrieves the names of all adjacent zones connected to the given zone.
+        """
         return self.adjacency.get(zone_name)
     
     def get_connection(self,from_name:str, to_name:str) -> "Connection":
+        """
+        Retrieves the Connection object linking two specific zones.
+        """
         return self.connections.get((from_name,to_name))
     
     def is_zone_available(self,zone_name:str, current_occupancy:int) -> bool:
+        """
+        Checks if a zone has available capacity for another drone to enter.
+
+        Compares the zone's maximum allowed drone capacity against the predicted 
+        occupancy of the zone for that turn.
+        """
         target_zone = self.zones.get(zone_name)
         target_zone_max_drones = target_zone.hub_meta_data.get("max_drones",None)
         if target_zone_max_drones is None:
@@ -103,6 +115,12 @@ class Graph(BaseModel):
         return True
     
     def is_connection_available(self,from_name:str, to_name:str, current_usage) -> bool:
+        """
+        Checks if a physical link can support additional transit.
+
+        Compares the connection's maximum link capacity against the simulated 
+        current usage/drones in transit on this link.
+        """
         target_connection = self.get_connection(from_name,to_name)
         target_max_link_capacity = target_connection.max_link_capacity
         if target_max_link_capacity is None:
@@ -110,9 +128,30 @@ class Graph(BaseModel):
         elif target_max_link_capacity < current_usage:
             return False
         return True
+    
+    def get_cost(self,to_name:str) -> int | float:
+        """
+        Calculates the simulation cost (in turns) to enter a target zone.
+
+        The cost depends strictly on the zone type:
+        - normal / priority: 1 turn
+        - restricted: 2 turns
+        - blocked: Infinite cost (inaccessible)
+        """
+        target_zone_type = self.zones[to_name].hub_meta_data["zone"]
+        match target_zone_type:
+            case "normal":
+                return 1
+            case "priority":
+                return 1
+            case "restricted":
+                return 2
+            case "blocked":
+                return float("inf")
+        
+        
 
 
-#TODO am i need None in geter methods?
 #test Graphs
 if __name__ == "__main__":
     map_data = MapData.parsing_from_file("maps/challenger/01_the_impossible_dream.txt")
@@ -120,5 +159,6 @@ if __name__ == "__main__":
     #print(g.get_connection("overflow_hell3","false_hope1"))
     #print(g.get_neighbors("overflow_hell3"))
     #print(g.is_zone_available("priority_trap1",10))
-    print(g.is_connection_available("start","gate_hell1",2))
+    #print(g.is_connection_available("start","gate_hell1",2))
+    #print(g.get_cost("maze_loop1"))
         
