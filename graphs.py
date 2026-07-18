@@ -1,9 +1,4 @@
 from pydantic import Field, BaseModel, model_validator, ValidationError,field_validator
-from pydantic_core import to_jsonable_python
-from typing import Any, Optional
-import json
-import re
-from enum import Enum
 from parser import Hub,Connection,MapData
 
 
@@ -148,7 +143,9 @@ class Graph(BaseModel):
                 return 2
             case "blocked":
                 return float("inf")
-        
+            
+    def get_zone(self,zone_name:str) -> Hub:
+        return self.zones[zone_name]
         
 
 
@@ -161,4 +158,5 @@ if __name__ == "__main__":
     #print(g.is_zone_available("priority_trap1",10))
     #print(g.is_connection_available("start","gate_hell1",2))
     #print(g.get_cost("maze_loop1"))
+    print(g.get_zone("gate_hell1"))
         

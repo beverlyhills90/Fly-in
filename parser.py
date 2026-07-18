@@ -1,10 +1,7 @@
 from pydantic import Field, BaseModel, model_validator, ValidationError,field_validator
-from pydantic_core import to_jsonable_python
+from pydantic_core import to_json
 from typing import Any, Optional
-import json
-import re
 from enum import Enum
-
 
 class ParsingError(Exception):
     def __init__(self, msg):
@@ -198,6 +195,7 @@ class MapData(BaseModel):
 
         except (OSError,ParsingError) as e:
             print(f"Parsing Erorr: {e}")
+
 
 
 
