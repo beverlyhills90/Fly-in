@@ -1,7 +1,8 @@
-from pydantic import Field, BaseModel, model_validator, ValidationError,field_validator
+from pydantic import Field, BaseModel, model_validator, ValidationError, field_validator
 from pydantic_core import to_json
 from typing import Any, Optional
 from enum import Enum
+
 
 class ParsingError(Exception):
     def __init__(self, msg):
@@ -17,31 +18,32 @@ class HUBS(Enum):
 class Hub_MetaData(BaseModel):
     zone: Optional[str] = Field(default="normal")
     color: Optional[str] = Field(default=None)
-    max_drones: Optional[int] = Field(ge=1)
+    max_drones: Optional[int] = Field(ge=1, default=1000)
 
-    @field_validator('zone', mode='before')
+    @field_validator("zone", mode="before")
     @classmethod
     def set_default_zone(cls, value: Optional[str]) -> str:
         if value is None:
             return "normal"
         return value
 
+
 class Connection(BaseModel):
     connection_from: str = Field(min_length=1)
     connection_to: str = Field(min_length=1)
-    max_link_capacity: Optional[int] = Field(default=None,ge=1)
+    max_link_capacity: Optional[int] = Field(default=None, ge=1)
 
 
 class Hub(BaseModel):
     hub_name: str = Field(min_length=1, max_length=100)
     hub_cords: tuple[int, int]
-    hub_meta_data:dict
+    hub_meta_data: dict
 
 
 class MapData(BaseModel):
     nb_drones: int = Field(ge=1)
     start_hub_name: str = Field(min_length=1, max_length=100)
-    start_hub_cords: tuple[int,int]
+    start_hub_cords: tuple[int, int]
     start_hub_meta_data: dict
     end_hub_cords: tuple[int, int]
     end_hub_name: str
@@ -50,12 +52,12 @@ class MapData(BaseModel):
     connections: list[Connection]
 
     @classmethod
-    def parsing_from_file(cls,file_path: str) -> "MapData":
+    def parsing_from_file(cls, file_path: str) -> "MapData":
         """
         Parses a map configuration file to build and validate a MapData instance.
 
-        Reads drone count, hub metadata (coordinates, restrictions, coloring), 
-        and link capacities from a text file, enforcing data constraints 
+        Reads drone count, hub metadata (coordinates, restrictions, coloring),
+        and link capacities from a text file, enforcing data constraints
         and structural integrity throughout the process.
         """
         allowed_zones = ["normal", "blocked", "restricted", "priority"]
@@ -63,7 +65,7 @@ class MapData(BaseModel):
         main_data: dict[str, Any] = {}
         hubs = []
         connections = []
-        
+
         start_marker = False
         finish_marker = False
 
@@ -78,27 +80,39 @@ class MapData(BaseModel):
             """
             Processes a parsed hub and registers it into the corresponding collection.
 
-            Identifies start or end hubs to assign them directly to the map's root properties, 
+            Identifies start or end hubs to assign them directly to the map's root properties,
             or converts standard nodes into validated Hub models to append to the global hubs list.
             """
             if hub_t == HUBS.START:
                 main_data["start_hub_name"] = hub_name
                 main_data["start_hub_cords"] = hub_cord
-                main_data["start_hub_meta_data"] = vars(Hub_MetaData(zone=zone, max_drones=max_drones, color=color))
+                main_data["start_hub_meta_data"] = vars(
+                    Hub_MetaData(zone=zone, max_drones=max_drones, color=color)
+                )
             elif hub_t == HUBS.END:
                 main_data["end_hub_name"] = hub_name
                 main_data["end_hub_cords"] = hub_cord
-                main_data["end_hub_meta_data"] = vars(Hub_MetaData(zone=zone, max_drones=max_drones, color=color))
+                main_data["end_hub_meta_data"] = vars(
+                    Hub_MetaData(zone=zone, max_drones=max_drones, color=color)
+                )
             else:
-                metadata = vars(Hub_MetaData(zone=zone, max_drones=max_drones, color=color))
-                tmp = Hub(hub_name=hub_name,hub_cords=hub_cord,hub_meta_data=metadata)
+                metadata = vars(
+                    Hub_MetaData(zone=zone, max_drones=max_drones, color=color)
+                )
+                tmp = Hub(hub_name=hub_name, hub_cords=hub_cord, hub_meta_data=metadata)
                 hubs.append(tmp)
-        
-        def load_connections_to_list(connections_lst:list[str],max_link_capacity:int | None) -> None:
+
+        def load_connections_to_list(
+            connections_lst: list[str], max_link_capacity: int | None
+        ) -> None:
             """
             Creates a new Connections model instance and appends it to the global connections list.
             """
-            conn = Connection(connection_from=connections_lst[0],connection_to=connections_lst[1],max_link_capacity=max_link_capacity)
+            conn = Connection(
+                connection_from=connections_lst[0],
+                connection_to=connections_lst[1],
+                max_link_capacity=max_link_capacity,
+            )
             connections.append(conn)
 
         try:
@@ -154,23 +168,33 @@ class MapData(BaseModel):
                                 ]
                             )
                             if successfully_parsed != total_incoming_params:
-                                raise ParsingError(f"Invalid or unknown metadata in {hub_name}")
+                                raise ParsingError(
+                                    f"Invalid or unknown metadata in {hub_name}"
+                                )
                             if color_str is not None:
                                 color = color_str.split("=")[1].replace("]", "")
                             if max_drones_str is not None:
                                 try:
                                     max_drones = int(
-                                        max_drones_str.split("=")[1].replace("]", "").strip()
+                                        max_drones_str.split("=")[1]
+                                        .replace("]", "")
+                                        .strip()
                                     )
                                     if max_drones < 0:
-                                        raise ParsingError(f"Invalid metadata in {tmp[0]}: max_drones is negative")
+                                        raise ParsingError(
+                                            f"Invalid metadata in {tmp[0]}: max_drones is negative"
+                                        )
                                 except (IndexError, ValueError) as e:
-                                        raise ParsingError(f"Invalid metadata in {tmp[0]}: {e}")
+                                    raise ParsingError(
+                                        f"Invalid metadata in {tmp[0]}: {e}"
+                                    )
                             if zone_str is not None:
                                 zone = zone_str.split("=")[1]
                                 if zone not in allowed_zones:
-                                    raise ParsingError(f"Invalid metadata in {tmp[0]}: zone type is invalid")
-                            #print(hub_name, hub_cords, color, max_drones, zone)
+                                    raise ParsingError(
+                                        f"Invalid metadata in {tmp[0]}: zone type is invalid"
+                                    )
+                            # print(hub_name, hub_cords, color, max_drones, zone)
                             load_hubs_to_dict(
                                 hub_name, hub_cords, color, max_drones, zone, hub_t
                             )
@@ -183,25 +207,28 @@ class MapData(BaseModel):
                         if len(tmp) > 1:
                             max_link_capacity_str = tmp[1]
                             try:
-                                max_link_capacity = int(max_link_capacity_str.split("=")[1].replace("]","").strip())
+                                max_link_capacity = int(
+                                    max_link_capacity_str.split("=")[1]
+                                    .replace("]", "")
+                                    .strip()
+                                )
                             except ValueError:
-                                raise ParsingError(f"max_link_capacity in {tmp[0]} is invalid")
-                        #print(connections_lst,max_link_capacity)
-                        load_connections_to_list(connections_lst,max_link_capacity)
+                                raise ParsingError(
+                                    f"max_link_capacity in {tmp[0]} is invalid"
+                                )
+                        # print(connections_lst,max_link_capacity)
+                        load_connections_to_list(connections_lst, max_link_capacity)
             main_data["hubs"] = hubs
             main_data["connections"] = connections
 
             return cls.model_validate(main_data)
 
-        except (OSError,ParsingError) as e:
+        except (OSError, ParsingError) as e:
             print(f"Parsing Erorr: {e}")
 
 
-
-
-#test parsing
+# test parsing
 if __name__ == "__main__":
     map_data = MapData.parsing_from_file("maps/challenger/01_the_impossible_dream.txt")
     clean_data = map_data.model_dump_json(indent=2)
     print(clean_data)
-            
