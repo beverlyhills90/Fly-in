@@ -8,7 +8,7 @@ from math import sqrt, pi, cos, sin, degrees
 from time import sleep
 
 
-def draw_text(
+def draw_text_in_circle(
     screen, text: str, center: tuple[int, int], max_diameter: int, text_color: str
 ) -> None:
     if max_diameter <= 5:
@@ -116,14 +116,14 @@ def draw_hubs(graph: Graph, screen, coords_on_screen: dict, zoom_modifier: int) 
         pygame.draw.circle(screen, (0, 0, 0), (x, y), radius + 2, 0)
         pygame.draw.circle(screen, color, (x, y), radius, 0)
         text_color = (255, 255, 255) if color in ["blue", "red", "black"] else (0, 0, 0)
-        draw_text(screen, hub_name, (x, y), radius * 2, text_color)
+        draw_text_in_circle(screen, hub_name, (x, y), radius * 2, text_color)
 
 
-def init_drones(nb_drones: int, start: tuple[int, int], zoom_modifier: float) -> dict:
+def init_drones(nb_drones: int, start: str) -> dict:
     init = {}
 
     for i in range(1, nb_drones + 1):
-        init[f"D{i}"] = (start[0], start[1])
+        init[f"D{i}"] = (start, start, "stay")
 
     return init
 
@@ -146,31 +146,40 @@ def render_drones(screen, size: int, center: int, drone_id: str, color=(100, 100
 
 def draw_a_bach(screen, draw_in_hub: dict, zoom_modifier: int):
     radius = max(5, int(12 * zoom_modifier))
+
     for cord, set_id in draw_in_hub.items():
         if len(set_id) == 1:
-            render_drones(screen, int(12 * zoom_modifier), cord, set_id[0])
+            render_drones(screen, radius, cord, set_id[0])
         else:
             for i, drone_id in enumerate(set_id):
                 angle = (2 * pi / len(set_id)) * i
                 drone_x = cord[0] + radius * cos(angle)
                 drone_y = cord[1] + radius * sin(angle)
-                render_drones(
-                    screen, int(12 * zoom_modifier), (drone_x, drone_y), drone_id
-                )
+                render_drones(screen, radius, (drone_x, drone_y), drone_id)
 
 
 def draw_sim(
     screen,
-    step: list[str],
     hub_coords_on_screen: dict,
     drones_pos: dict,
-    map_data: MapData,
     zoom_modifier: float,
     graph: Graph,
 ) -> None:
     draw_hubs(graph, screen, hub_coords_on_screen, zoom_modifier)
     draw_in_hub = {}
-    for drone_id, cords in drones_pos.items():
+    drone_state = {}
+    for drone_id, action in drones_pos.items():
+        from_zone, to_zone, path = action
+        if path == "half":
+            x, y = hub_coords_on_screen[from_zone]
+            target_x, target_y = hub_coords_on_screen[to_zone]
+            mid_x = (x + target_x) / 2
+            mid_y = (y + target_y) / 2
+            drone_state[drone_id] = (mid_x, mid_y)
+        else:
+            drone_state[drone_id] = hub_coords_on_screen[to_zone]
+
+    for drone_id, cords in drone_state.items():
         if draw_in_hub.get(cords, None) != None:
             draw_in_hub[cords].append(drone_id)
         else:
@@ -181,34 +190,24 @@ def draw_sim(
 
 def update_drones_cords(
     step: list[str],
-    hub_coords_on_screen: dict,
     drones_pos: dict,
-    map_data: MapData,
-    zoom_modifier: float,
-    graph: Graph,
 ) -> None:
     doing = {}
     for log in step:
         log_splited = log.split("-")
+        drone_id = log_splited[0]
         if len(log_splited) == 3:
-            if drones_pos[log_splited[0]] != log_splited[2]:
-                doing[log_splited[0]] = (log_splited[2], "half")
+            prev_zone = drones_pos[drone_id][1]
+            if drones_pos[drone_id][1] != log_splited[2]:
+                doing[drone_id] = (prev_zone, log_splited[2], "half")
             else:
-                doing[log_splited[0]] = (log_splited[2], "full")
+                doing[log_splited[0]] = (prev_zone, log_splited[2], "full")
         else:
-            doing[log_splited[0]] = (log_splited[1], "full")
+            doing[log_splited[0]] = (log_splited[1], log_splited[1], "full")
 
     for drone_id, action in doing.items():
-        to_zone, path = action
-        if to_zone in hub_coords_on_screen:
-            if path == "half":
-                x, y = drones_pos[drone_id]
-                target_x, target_y = hub_coords_on_screen[to_zone]
-                mid_x = (x + target_x) / 2
-                mid_y = (y + target_y) / 2
-                drones_pos[drone_id] = (mid_x, mid_y)
-            else:
-                drones_pos[drone_id] = hub_coords_on_screen[to_zone]
+        from_zone, to_zone, path = action
+        drones_pos[drone_id] = (from_zone, to_zone, path)
 
 
 def vizualizer(
@@ -236,14 +235,8 @@ def vizualizer(
                 running = False
             elif event.type == STEP_EVENT and sim_activated:
                 current_step = next(logs, None)
-                update_drones_cords(
-                    current_step,
-                    coords_on_screen,
-                    drones_pos,
-                    map_data,
-                    zoom_modifier,
-                    graph,
-                )
+                if current_step is not None:
+                    update_drones_cords(current_step, drones_pos)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_s:
                     sim_activated = not sim_activated
@@ -252,10 +245,7 @@ def vizualizer(
                         coords = hub_coords_on_screen(
                             graph, zoom_modifier, camera_x, camera_y
                         )
-                        drones_pos = init_drones(
-                            nb_drones, coords[map_data.start_hub_name], zoom_modifier
-                        )
-                        current_step = next(logs)
+                        drones_pos = init_drones(nb_drones, map_data.start_hub_name)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:
                     zoom_modifier += 0.1
@@ -284,10 +274,8 @@ def vizualizer(
         if sim_activated and current_step is not None:
             draw_sim(
                 screen,
-                current_step,
                 coords_on_screen,
                 drones_pos,
-                map_data,
                 zoom_modifier,
                 graph,
             )
