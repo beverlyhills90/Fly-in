@@ -17,8 +17,8 @@ class HUBS(Enum):
 
 class Hub_MetaData(BaseModel):
     zone: Optional[str] = Field(default="normal")
-    color: Optional[str] = Field(default=None)
-    max_drones: Optional[int] = Field(ge=1, default=1000)
+    color: Optional[str] = Field(default="Green")
+    max_drones: Optional[int] = Field(ge=1, default=1)
 
     @field_validator("zone", mode="before")
     @classmethod
@@ -27,12 +27,27 @@ class Hub_MetaData(BaseModel):
             return "normal"
         return value
 
+    @field_validator("max_drones", mode="before")
+    @classmethod
+    def set_default_max_drones(cls, value: Optional[int]) -> int:
+        if value is None:
+            return 1
+        return value
+    
+
+
 
 class Connection(BaseModel):
     connection_from: str = Field(min_length=1)
     connection_to: str = Field(min_length=1)
-    max_link_capacity: Optional[int] = Field(default=None, ge=1)
+    max_link_capacity: Optional[int] = Field(default=1, ge=1)
 
+    @field_validator("max_link_capacity", mode="before")
+    @classmethod
+    def set_default_max_drones(cls, value: Optional[int]) -> int:
+        if value is None:
+            return 1
+        return value
 
 class Hub(BaseModel):
     hub_name: str = Field(min_length=1, max_length=100)
@@ -220,7 +235,6 @@ class MapData(BaseModel):
                         load_connections_to_list(connections_lst, max_link_capacity)
             main_data["hubs"] = hubs
             main_data["connections"] = connections
-
             return cls.model_validate(main_data)
 
         except (OSError, ParsingError) as e:
@@ -229,6 +243,6 @@ class MapData(BaseModel):
 
 # test parsing
 if __name__ == "__main__":
-    map_data = MapData.parsing_from_file("maps/challenger/01_the_impossible_dream.txt")
+    map_data = MapData.parsing_from_file("/Users/og/myubuntu/42repo/Fly-in/maps/medium/02_circular_loop.txt")
     clean_data = map_data.model_dump_json(indent=2)
     print(clean_data)
