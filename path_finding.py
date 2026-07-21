@@ -38,10 +38,10 @@ class Drone(BaseModel):
                 g[zone] = 0
                 continue
             g[zone] = float("inf")
-        heapq.heappush(heap,(0,self.current_zone))
+        heapq.heappush(heap, (0, self.current_zone))
 
         while len(heap) != 0:
-            cost,zone_name = heapq.heappop(heap)
+            cost, zone_name = heapq.heappop(heap)
             if zone_name in visited:
                 continue
 
@@ -56,20 +56,20 @@ class Drone(BaseModel):
                 return path[1]
             visited.add(zone_name)
             for neighbor in graph.get_neighbors(zone_name):
-                if not world_state.is_available(neighbor,graph):
+                if not world_state.is_available(neighbor, graph):
                     continue
                 cost_to_neighbor = graph.get_cost(neighbor)
                 new_g = cost_to_neighbor + g[zone_name]
                 if new_g < g[neighbor]:
                     g[neighbor] = new_g
                     came_from[neighbor] = zone_name
-                    zone_x,zone_y = graph.get_zone(neighbor).hub_cords
+                    zone_x, zone_y = graph.get_zone(neighbor).hub_cords
                     (fin_x, fin_y) = map_data.end_hub_cords
                     h = round(sqrt((fin_x - zone_x) ** 2 + (fin_y - zone_y) ** 2), 2)
                     f = new_g + h
                     if graph.get_zone(neighbor).hub_meta_data["zone"] == "priority":
-                            f -= 0.5
-                    heapq.heappush(heap,(f,neighbor))
+                        f -= 0.5
+                    heapq.heappush(heap, (f, neighbor))
 
 
 class WorldState(BaseModel):
@@ -82,7 +82,7 @@ class WorldState(BaseModel):
     @classmethod
     def build(cls, graph: Graph, map_data: MapData) -> "WorldState":
         drones = []
-        for i in range(1,map_data.nb_drones+1):
+        for i in range(1, map_data.nb_drones + 1):
             drones.append(Drone.build(i, map_data.start_hub_name))
         zone_info = {map_data.start_hub_name: len(drones)}
         for zone in map_data.hubs[1:]:
@@ -193,7 +193,7 @@ class Simulation(BaseModel):
                 if drone.current_zone == self.map_data.end_hub_name:
                     drone.status = Status.DELIVERED
             output.append(log)
-        #print(move_counter)
+        # print(move_counter)
         return output
 
 
@@ -203,9 +203,9 @@ if __name__ == "__main__":
         "/Users/og/myubuntu/42repo/Fly-in/maps/challenger/01_the_impossible_dream.txt"
     )
     g: "Graph" = Graph.load_from_map_data(map_data)
-    #print(g.zones)
+    # print(g.zones)
     world_s = WorldState.build(g, map_data=map_data)
     # print(world_s.model_dump_json(indent=2))
     # print(drone.decide_next_step(g,map_data,world_s))
     simulation = Simulation.build(world_s.drones, world_s, g, map_data)
-    #print(simulation.simulation())
+    # print(simulation.simulation())

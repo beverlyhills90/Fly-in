@@ -33,8 +33,6 @@ class Hub_MetaData(BaseModel):
         if value is None:
             return 1
         return value
-    
-
 
 
 class Connection(BaseModel):
@@ -48,6 +46,7 @@ class Connection(BaseModel):
         if value is None:
             return 1
         return value
+
 
 class Hub(BaseModel):
     hub_name: str = Field(min_length=1, max_length=100)
@@ -243,6 +242,8 @@ class MapData(BaseModel):
 
 # test parsing
 if __name__ == "__main__":
-    map_data = MapData.parsing_from_file("/Users/og/myubuntu/42repo/Fly-in/maps/medium/02_circular_loop.txt")
+    map_data = MapData.parsing_from_file(
+        "/Users/og/myubuntu/42repo/Fly-in/maps/medium/02_circular_loop.txt"
+    )
     clean_data = map_data.model_dump_json(indent=2)
     print(clean_data)
