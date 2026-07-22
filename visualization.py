@@ -9,7 +9,7 @@ from enum import Enum
 from pydantic_core import to_json
 from math import sqrt, pi, cos, sin, degrees
 from time import sleep
-
+import colorsys
 
 def draw_text_in_circle(
     screen, text: str, center: tuple[int, int], max_diameter: int, text_color: str
@@ -114,7 +114,7 @@ def draw_hubs(graph: Graph, screen, coords_on_screen: dict, zoom_modifier: int) 
         x, y = coords_on_screen[hub_name]
         color = hub.hub_meta_data.get("color", "white")
         if color == "rainbow":
-            color = "blue"
+            color = "royal blue"
         radius = max(5, int(12 * zoom_modifier))
         pygame.draw.circle(screen, (0, 0, 0), (x, y), radius + 2, 0)
         pygame.draw.circle(screen, color, (x, y), radius, 0)
@@ -281,7 +281,7 @@ def vizualizer(
                 
             
 
-        screen.fill("gray")
+        screen.fill((114, 206, 255))
         text_surface = font.render(f"Moves: {moves}", True, (255, 255, 255))
         screen.blit(text_surface, (10, 10))
         coords_on_screen = hub_coords_on_screen(

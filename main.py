@@ -7,7 +7,7 @@ from path_finding import Simulation, WorldState
 def main() -> None:
     try:
         map_data = MapData.parsing_from_file(
-            "/Users/og/myubuntu/42repo/Fly-in/maps/hard/03_ultimate_challenge.txt"
+            "/Users/og/myubuntu/42repo/Fly-in/maps/challenger/01_the_impossible_dream.txt"
         )
     except ParsingError as e:
         print("\033[31m", f"Error: {e}", "\033[0m")
