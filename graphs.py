@@ -46,8 +46,10 @@ class Graph(BaseModel):
             """
             Constructs the graph's adjacency list inside `adjacency_dict`.
 
-            Iterates through map connections to map each node to its direct neighbors,
-            ensuring the resulting graph representation is bidirectional (undirected).
+            Iterates through map connections to map each node to
+            its direct neighbors,
+            ensuring the resulting graph representation is
+            bidirectional (undirected).
             """
             connections_lst = map_data.connections
             for conn in connections_lst:
@@ -82,15 +84,11 @@ class Graph(BaseModel):
             zones_lst = [start_hub, end_hub] + map_data.hubs
             zones_lst[0:0] = [start_hub, end_hub]
             connections_lst = map_data.connections
-            tmp = [vars(zone) for zone in zones_lst]
 
             for conn in connections_lst:
                 fr = conn.connection_from
                 to = conn.connection_to
                 key = (fr, to)
-                # target_zone_1 = next((zone for zone in tmp if zone["hub_name"] == fr), None)
-                # target_zone_2 = next((zone for zone in tmp if zone["hub_name"] == to), None)
-                # value = (Hub.model_validate(target_zone_1),Hub.model_validate(target_zone_2))
                 connections_dict[key] = conn
 
         load_adjacency()

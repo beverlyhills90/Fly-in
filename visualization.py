@@ -4,7 +4,8 @@ os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 from parser import MapData
 from graphs import Graph
-from math import sqrt, pi, cos, sin, degrees
+from math import pi, cos, sin
+from typing import Iterator
 
 
 def draw_text_in_circle(
@@ -166,7 +167,9 @@ def draw_hubs(
         pygame.draw.circle(screen, color, (x, y), radius, 0)
 
         text_color: tuple[int, int, int] = (
-            (255, 255, 255) if color in ["blue", "red", "black"] else (0, 0, 0)
+            (255, 255, 255)
+            if color in ["blue", "red", "black", "purple", "brown"]
+            else (0, 0, 0)
         )
         draw_text_in_circle(screen, hub_name, (x, y), radius * 2, text_color)
 
