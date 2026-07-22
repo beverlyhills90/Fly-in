@@ -232,15 +232,16 @@ def vizualizer(
 
     drones_pos = None
     STEP_EVENT = pygame.USEREVENT + 1
-    pygame.time.set_timer(STEP_EVENT, 1000)
-    current_step = None
+    current_step = []
     moves = 0
+    pygame.time.set_timer(STEP_EVENT, 1000)
     font = pygame.font.SysFont("Arial", 15, bold=True)
+    freez = False
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == STEP_EVENT and sim_activated:
+            elif event.type == STEP_EVENT and sim_activated and not freez:
                 current_step = next(logs, None)
                 if current_step is not None:
                     moves += 1
@@ -248,12 +249,18 @@ def vizualizer(
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_s:
                     sim_activated = not sim_activated
+                    moves = 0
                     if sim_activated:
+                        
                         logs = (a for a in solution_logs)
-                        coords = hub_coords_on_screen(
-                            graph, zoom_modifier, camera_x, camera_y
-                        )
                         drones_pos = init_drones(nb_drones, map_data.start_hub_name)
+                        current_step = [] 
+                        pygame.time.set_timer(STEP_EVENT, 1000)
+                elif event.key == pygame.K_f:
+                    freez = not freez
+                elif event.key == pygame.K_ESCAPE:
+                    running = False
+                
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:
                     zoom_modifier += 0.1
@@ -271,9 +278,8 @@ def vizualizer(
                     camera_x += event.rel[0]
                     camera_y += event.rel[1]
 
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    running = False
+                
+            
 
         screen.fill("gray")
         text_surface = font.render(f"Moves: {moves}", True, (255, 255, 255))
@@ -289,6 +295,8 @@ def vizualizer(
                 zoom_modifier,
                 graph,
             )
+        elif current_step is None or freez:
+            draw_sim(screen,coords_on_screen,drones_pos,zoom_modifier,graph)
         else:
             draw_hubs(graph, screen, coords_on_screen, zoom_modifier)
 
@@ -303,7 +311,7 @@ def vizualizer(
             2,
         )
         controls_surface = font.render(
-            "Controls: [S] Start/Pause | [Scroll] Zoom | [LMB + Drag] Camera",
+            "Controls: [S] Start/Pause | [Scroll] Zoom | [LMB + Drag] Camera | [F] Freez/Unfreez",
             True,
             (200, 200, 200),
         )
