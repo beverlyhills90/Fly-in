@@ -137,7 +137,7 @@ class MapData(BaseModel):
                     if "nb_drones" in line:  # nb_drones_line parsing
                         main_data["nb_drones"] = line.split(":")[1].strip()
                         continue
-                    if "hub" in line:  # hub logic parsing
+                    if "hub" in line.split(":")[0]:  # hub logic parsing
                         hub_t = HUBS.NORMAL
                         if "start_hub" in line:
                             if not start_marker:
@@ -212,7 +212,7 @@ class MapData(BaseModel):
                             load_hubs_to_dict(
                                 hub_name, hub_cords, color, max_drones, zone, hub_t
                             )
-                    if "connection" in line:
+                    if "connection" in line.split(":")[0]:
                         tmp = line.split(":")[1].split()
                         connections_lst = tmp[0].split("-")
                         max_link_capacity = None
@@ -236,8 +236,8 @@ class MapData(BaseModel):
             main_data["connections"] = connections
             return cls.model_validate(main_data)
 
-        except (OSError, ParsingError) as e:
-            print(f"Parsing Erorr: {e}")
+        except OSError as e:
+            raise ParsingError(f"Parsing Error: {e}")
 
 
 # test parsing

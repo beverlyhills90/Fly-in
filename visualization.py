@@ -1,3 +1,6 @@
+import os
+
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 from pydantic import Field, BaseModel, model_validator, ValidationError, field_validator
 from parser import Hub, Connection, MapData
@@ -188,12 +191,15 @@ def draw_sim(
     draw_a_bach(screen, draw_in_hub, zoom_modifier)
 
 
-def update_drones_cords(
-    step: list[str],
-    drones_pos: dict,
-) -> None:
+def update_drones_cords(step: list[str], drones_pos: dict, move_counter: int) -> None:
+    RESET = "\033[0m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
     doing = {}
+    print("=" * 15)
+    print(f"{GREEN}Move:{move_counter}{RESET}")
     for log in step:
+        print(f"{YELLOW}{log}{RESET}")
         log_splited = log.split("-")
         drone_id = log_splited[0]
         if len(log_splited) == 3:
@@ -204,7 +210,6 @@ def update_drones_cords(
                 doing[log_splited[0]] = (prev_zone, log_splited[2], "full")
         else:
             doing[log_splited[0]] = (log_splited[1], log_splited[1], "full")
-
     for drone_id, action in doing.items():
         from_zone, to_zone, path = action
         drones_pos[drone_id] = (from_zone, to_zone, path)
@@ -229,6 +234,8 @@ def vizualizer(
     STEP_EVENT = pygame.USEREVENT + 1
     pygame.time.set_timer(STEP_EVENT, 1000)
     current_step = None
+    moves = 0
+    font = pygame.font.SysFont("Arial", 15, bold=True)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -236,7 +243,8 @@ def vizualizer(
             elif event.type == STEP_EVENT and sim_activated:
                 current_step = next(logs, None)
                 if current_step is not None:
-                    update_drones_cords(current_step, drones_pos)
+                    moves += 1
+                    update_drones_cords(current_step, drones_pos, moves)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_s:
                     sim_activated = not sim_activated
@@ -268,6 +276,8 @@ def vizualizer(
                     running = False
 
         screen.fill("gray")
+        text_surface = font.render(f"Moves: {moves}", True, (255, 255, 255))
+        screen.blit(text_surface, (10, 10))
         coords_on_screen = hub_coords_on_screen(
             graph, zoom_modifier, camera_x, camera_y
         )
@@ -282,6 +292,22 @@ def vizualizer(
         else:
             draw_hubs(graph, screen, coords_on_screen, zoom_modifier)
 
+        panel_height = 60
+        panel_rect = pygame.Rect(0, 720 - panel_height, 1280, panel_height)
+        pygame.draw.rect(screen, (30, 30, 35), panel_rect)
+        pygame.draw.line(
+            screen,
+            (0, 200, 255),
+            (0, 720 - panel_height),
+            (1280, 720 - panel_height),
+            2,
+        )
+        controls_surface = font.render(
+            "Controls: [S] Start/Pause | [Scroll] Zoom | [LMB + Drag] Camera",
+            True,
+            (200, 200, 200),
+        )
+        screen.blit(controls_surface, (20, 720 - panel_height + 25))
         pygame.display.flip()
         clock.tick(60)
 
