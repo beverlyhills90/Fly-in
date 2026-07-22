@@ -78,6 +78,7 @@ class MapData(BaseModel):
         main_data: dict[str, Any] = {}
         hubs = []
         connections = []
+        req_args = ["start_hub_name","start_hub_cords","start_hub_meta_data","end_hub_name","end_hub_cords","end_hub_meta_data","nb_drones"]
 
         start_marker = False
         finish_marker = False
@@ -217,6 +218,8 @@ class MapData(BaseModel):
                         max_link_capacity = None
                         if len(tmp) > 2:
                             raise ParsingError(f"Too much data for connection {tmp[0]}")
+                        if len(tmp) < 2:
+                            raise ParsingError(f"Connection is invalid {tmp[0]}")
                         if len(tmp) > 1:
                             max_link_capacity_str = tmp[1]
                             try:
@@ -233,6 +236,9 @@ class MapData(BaseModel):
                         load_connections_to_list(connections_lst, max_link_capacity)
             main_data["hubs"] = hubs
             main_data["connections"] = connections
+            for el in req_args:
+                if el not in main_data.keys():
+                    raise ParsingError(f"Add pls {el} argument to map data")
             return cls.model_validate(main_data)
 
         except OSError as e:
