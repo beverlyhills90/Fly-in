@@ -2,6 +2,11 @@ from pydantic import Field, BaseModel
 from parser import Hub, Connection, MapData
 
 
+class GraphError(Exception):
+    def __init__(self, msg: str) -> None:
+        super().__init__(msg)
+
+
 class Graph(BaseModel):
     """Represents a graph structure containing zones, connections, and adjacency maps.
 
@@ -105,7 +110,11 @@ class Graph(BaseModel):
     def get_neighbors(self, zone_name: str) -> list[str]:
         """Retrieves the names of all adjacent zones connected to the given zone.
         """
-        return self.adjacency[zone_name]
+        try:
+            res = self.adjacency[zone_name]
+        except KeyError:
+            raise GraphError(f"{zone_name} nas no neighbors")
+        return res
 
     def get_connection(self, from_name: str, to_name: str) -> "Connection":
         """Retrieves the Connection object linking two specific zones.

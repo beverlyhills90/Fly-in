@@ -34,6 +34,13 @@ class Hub_MetaData(BaseModel):
             return 1
         return value
 
+    @field_validator("color", mode="before")
+    @classmethod
+    def set_default_color(cls, value: Optional[str]) -> str:
+        if value is None:
+            return "white"
+        return value
+
 
 class Connection(BaseModel):
     connection_from: str = Field(min_length=1)
@@ -141,7 +148,12 @@ class MapData(BaseModel):
                     if line.startswith("#"):
                         continue
                     if "nb_drones" in line:  # nb_drones_line parsing
-                        main_data["nb_drones"] = line.split(":")[1].strip()
+                        try:
+                            main_data["nb_drones"] = int(line.split(":")[1].strip())
+                            if int(line.split(":")[1].strip()) < 1:
+                                raise ParsingError("nb_drones can not be negative")
+                        except ValueError:
+                            raise ParsingError("nb_drones is invalid")
                         continue
                     if "hub" in line.split(":")[0]:  # hub logic parsing
                         hub_t = HUBS.NORMAL
@@ -158,6 +170,8 @@ class MapData(BaseModel):
                             else:
                                 raise ParsingError("We need only one finish hub")
                         tmp = line.split(":")[1].split()
+                        if len(tmp) != 4 and "[]" in line:
+                            raise ParsingError(f"Data for hub: {line.split(":")[0]} is invalid")
                         hub_name = tmp[0]
                         try:
                             hub_cords = (int(tmp[1]), int(tmp[2]))
@@ -193,6 +207,9 @@ class MapData(BaseModel):
                                 )
                             if color_str is not None:
                                 color = color_str.split("=")[1].replace("]", "")
+                                if not color.isalnum():
+                                    raise ParsingError(f"Invalid meatadata in {line}")
+
                             if max_drones_str is not None:
                                 try:
                                     max_drones = int(
@@ -219,16 +236,24 @@ class MapData(BaseModel):
                             load_hubs_to_dict(
                                 hub_name, hub_cords, color, max_drones, zone, hub_t
                             )
+                        elif len(tmp) == 3:
+                            load_hubs_to_dict(
+                                hub_name, hub_cords, color, max_drones, zone, hub_t
+                            )
+
                     if "connection" in line.split(":")[0]:
                         tmp = line.split(":")[1].split()
                         connections_lst = tmp[0].split("-")
                         max_link_capacity = None
                         if len(tmp) > 2:
-                            raise ParsingError(f"Too much data for connection {tmp[0]}")
+                            raise ParsingError(f"Connection is invalid {tmp[0]}")
                         if len(connections_lst) < 2 or connections_lst[1] == "":
                             raise ParsingError(f"Connection is invalid {tmp[0]}")
                         if len(tmp) > 1:
                             max_link_capacity_str = tmp[1]
+                            if "max_link_capacity" not in max_link_capacity_str:
+                                raise ParsingError("Invalid metadata for connection"
+                                                   f"{"-".join(connections_lst)}")
                             try:
                                 max_link_capacity = int(
                                     max_link_capacity_str.split("=")[1]

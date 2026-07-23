@@ -66,7 +66,7 @@ def main() -> None:
         solve_log = simulation.simulation()
         vizualizer(graph, solve_log, map_data.nb_drones, map_data)
     except Exception as e:
-        print("\033[31m", f"Ops something went wrong...: {e}", "\033[0m")
+       print("\033[31m", f"Ops something went wrong...: {e}", "\033[0m")  # noqa: E111
 
 
 if __name__ == "__main__":
