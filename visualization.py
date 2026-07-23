@@ -1,4 +1,5 @@
 import os
+
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 
 from math import cos, pi, sin
@@ -125,11 +126,11 @@ def draw_hubs(
             )
 
     radius = max(5, int(12 * zoom_modifier))
-    
+
     for hub_name, hub in graph.zones.items():
         if hub_name not in coords_on_screen:
             continue
-            
+
         x, y = coords_on_screen[hub_name]
         color = hub.hub_meta_data.get("color", "white")
         if color == "rainbow":
@@ -268,7 +269,7 @@ def vizualizer(
     moves = 0
 
     pygame.time.set_timer(STEP_EVENT, 1000)
-    
+
     font_ui = get_cached_font("Arial", 15, bold=True)
     controls_surface = font_ui.render(
         "Controls: [S] Start/Pause | [Scroll] Zoom | "
@@ -281,7 +282,7 @@ def vizualizer(
     panel_rect = pygame.Rect(0, 720 - panel_height, 1280, panel_height)
 
     coords_on_screen = hub_coords_on_screen(graph, zoom_modifier, camera_x, camera_y)
-    
+
     needs_recalc_coords = True
 
     while running:
@@ -353,7 +354,13 @@ def vizualizer(
         screen.blit(text_surface, (10, 10))
 
         pygame.draw.rect(screen, (30, 30, 35), panel_rect)
-        pygame.draw.line(screen, (0, 200, 255), (0, 720 - panel_height), (1280, 720 - panel_height), 2)
+        pygame.draw.line(
+            screen,
+            (0, 200, 255),
+            (0, 720 - panel_height),
+            (1280, 720 - panel_height),
+            2,
+        )
         screen.blit(controls_surface, (20, 720 - panel_height + 25))
 
         pygame.display.flip()

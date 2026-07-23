@@ -1,10 +1,11 @@
 from pydantic import Field, BaseModel, field_validator
 from typing import Any, Optional
 from enum import Enum
+from typing import cast
 
 
 class ParsingError(Exception):
-    def __init__(self, msg):
+    def __init__(self, msg: str) -> None:
         super().__init__(msg)
 
 
@@ -66,8 +67,7 @@ class MapData(BaseModel):
 
     @classmethod
     def parsing_from_file(cls, file_path: str) -> "MapData":
-        """
-        Parses a map configuration file to build and validate a MapData instance.
+        """Parses a map configuration file to build and validate a MapData instance.
 
         Reads drone count, hub metadata (coordinates, restrictions, coloring),
         and link capacities from a text file, enforcing data constraints
@@ -78,7 +78,15 @@ class MapData(BaseModel):
         main_data: dict[str, Any] = {}
         hubs = []
         connections = []
-        req_args = ["start_hub_name","start_hub_cords","start_hub_meta_data","end_hub_name","end_hub_cords","end_hub_meta_data","nb_drones"]
+        req_args = [
+            "start_hub_name",
+            "start_hub_cords",
+            "start_hub_meta_data",
+            "end_hub_name",
+            "end_hub_cords",
+            "end_hub_meta_data",
+            "nb_drones",
+        ]
 
         start_marker = False
         finish_marker = False
@@ -91,8 +99,7 @@ class MapData(BaseModel):
             zone: Optional[str],
             hub_t: "HUBS",
         ) -> None:
-            """
-            Processes a parsed hub and registers it into the corresponding collection.
+            """Processes a parsed hub and registers it into the corresponding collection.
 
             Identifies start or end hubs to assign them directly to the map's root properties,
             or converts standard nodes into validated Hub models to append to the global hubs list.
@@ -119,9 +126,8 @@ class MapData(BaseModel):
         def load_connections_to_list(
             connections_lst: list[str], max_link_capacity: int | None
         ) -> None:
-            """
-            Creates a new Connections model instance and appends it to the global connections list.
-            """
+            """Creates a new Connections model instance
+            and appends it to the global connections list."""
             conn = Connection(
                 connection_from=connections_lst[0],
                 connection_to=connections_lst[1],
@@ -206,7 +212,8 @@ class MapData(BaseModel):
                                 zone = zone_str.split("=")[1]
                                 if zone not in allowed_zones:
                                     raise ParsingError(
-                                        f"Invalid metadata in {tmp[0]}: zone type is invalid"
+                                        "Invalid metadata in"
+                                        f"{tmp[0]}: zone type is invalid"
                                     )
                             # print(hub_name, hub_cords, color, max_drones, zone)
                             load_hubs_to_dict(
@@ -218,7 +225,7 @@ class MapData(BaseModel):
                         max_link_capacity = None
                         if len(tmp) > 2:
                             raise ParsingError(f"Too much data for connection {tmp[0]}")
-                        if len(tmp) < 2:
+                        if len(connections_lst) < 2 or connections_lst[1] == "":
                             raise ParsingError(f"Connection is invalid {tmp[0]}")
                         if len(tmp) > 1:
                             max_link_capacity_str = tmp[1]
@@ -239,8 +246,7 @@ class MapData(BaseModel):
             for el in req_args:
                 if el not in main_data.keys():
                     raise ParsingError(f"Add pls {el} argument to map data")
-            return cls.model_validate(main_data)
-
+            return cast("MapData", cls.model_validate(main_data))
         except OSError as e:
             raise ParsingError(f"Parsing Error: {e}")
 

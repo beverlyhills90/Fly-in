@@ -9,3 +9,16 @@ dependencies = [
     "pydantic>=2.13.4",
     "pygame-ce>=2.5.7",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.22",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "D"]
+
+pydocstyle.convention = "google"
+
+[tool.ruff.format]
+docstring-code-format = true

@@ -3,25 +3,31 @@ from parser import Hub, Connection, MapData
 
 
 class Graph(BaseModel):
+    """Represents a graph structure containing zones, connections, and adjacency maps.
+
+    Attributes:
+        zones: Mapping from zone identifiers to their corresponding Hub instances.
+        adjacency: Adjacency list representing connected hubs for each zone ID.
+        connections: Mapping from (from_hub, to_hub) coordinate tuples
+            to Connection instances.
+    """
     zones: dict[str, Hub] = Field(default_factory=dict)
     adjacency: dict[str, list] = Field(default_factory=dict)
     connections: dict[tuple, "Connection"] = Field(default_factory=dict)
 
     @classmethod
-    def load_from_map_data(cls, map_data: "MapData") -> None:
-        """
-        Creates and initializes a Graph instance from raw MapData.
+    def load_from_map_data(cls, map_data: "MapData") -> "Graph":
+        """Creates and initializes a Graph instance from raw MapData.
 
         Builds the underlying dictionaries for zones, adjacency lists, and
         connections, then returns a fully populated Graph object.
         """
         zones_dict = {}
-        adjacency_dict = {}
+        adjacency_dict: dict[str, list] = {}
         connections_dict = {}
 
         def load_zones() -> None:
-            """
-            Loads all map hubs into the centralized `zones_dict`.
+            """Loads all map hubs into the centralized `zones_dict`.
 
             Combines the start, end, and intermediate hubs into a single list,
             then indexes them by their `hub_name` for fast lookup.
@@ -43,8 +49,7 @@ class Graph(BaseModel):
                 zones_dict.update({zone.hub_name: zone})
 
         def load_adjacency() -> None:
-            """
-            Constructs the graph's adjacency list inside `adjacency_dict`.
+            """Constructs the graph's adjacency list inside `adjacency_dict`.
 
             Iterates through map connections to map each node to
             its direct neighbors,
@@ -65,8 +70,7 @@ class Graph(BaseModel):
                     adjacency_dict[to] = [fr]
 
         def load_connections() -> None:
-            """
-            Maps edge names to their corresponding Hub objects inside `connections_dict`.
+            """Maps edge names to their corresponding Hub objects inside `connections_dict`.
 
             Looks up matching Hub records for each connection's source and destination,
             storing them as a key-value pair of `(from_node, to_node) -> (Hub_A, Hub_B)`.
@@ -99,25 +103,22 @@ class Graph(BaseModel):
         )
 
     def get_neighbors(self, zone_name: str) -> list[str]:
+        """Retrieves the names of all adjacent zones connected to the given zone.
         """
-        Retrieves the names of all adjacent zones connected to the given zone.
-        """
-        return self.adjacency.get(zone_name)
+        return self.adjacency[zone_name]
 
     def get_connection(self, from_name: str, to_name: str) -> "Connection":
+        """Retrieves the Connection object linking two specific zones.
         """
-        Retrieves the Connection object linking two specific zones.
-        """
-        return self.connections.get((from_name, to_name))
+        return self.connections[(from_name, to_name)]
 
     def is_zone_available(self, zone_name: str, current_occupancy: int) -> bool:
-        """
-        Checks if a zone has available capacity for another drone to enter.
+        """Checks if a zone has available capacity for another drone to enter.
 
         Compares the zone's maximum allowed drone capacity against the predicted
         occupancy of the zone for that turn.
         """
-        target_zone = self.zones.get(zone_name)
+        target_zone = self.zones[zone_name]
         target_zone_max_drones = target_zone.hub_meta_data.get("max_drones", None)
         if target_zone_max_drones is None:
             return True
@@ -126,10 +127,9 @@ class Graph(BaseModel):
         return True
 
     def is_connection_available(
-        self, from_name: str, to_name: str, current_usage
+        self, from_name: str, to_name: str, current_usage: int
     ) -> bool:
-        """
-        Checks if a physical link can support additional transit.
+        """Checks if a physical link can support additional transit.
 
         Compares the connection's maximum link capacity against the simulated
         current usage/drones in transit on this link.
@@ -143,8 +143,7 @@ class Graph(BaseModel):
         return True
 
     def get_cost(self, to_name: str) -> int | float:
-        """
-        Calculates the simulation cost (in turns) to enter a target zone.
+        """Calculates the simulation cost (in turns) to enter a target zone.
 
         The cost depends strictly on the zone type:
         - normal / priority: 1 turn
@@ -161,6 +160,7 @@ class Graph(BaseModel):
                 return 2
             case "blocked":
                 return float("inf")
+        return 1
 
     def get_zone(self, zone_name: str) -> Hub:
         return self.zones[zone_name]

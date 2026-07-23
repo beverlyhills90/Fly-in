@@ -49,7 +49,7 @@ def choos_map() -> str:
 
 
 def main() -> None:
-    """main"""
+    """Main"""
     map_file = choos_map()
     if map_file == "":
         print("Bye bye")

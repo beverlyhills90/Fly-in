@@ -4,6 +4,7 @@ from graphs import Graph
 from enum import Enum
 from math import sqrt
 import heapq
+from typing import cast
 
 
 class Status(Enum):
@@ -17,7 +18,7 @@ class Drone(BaseModel):
 
     drone_id: str = Field(min_length=1)
     current_zone: str = Field(min_length=1)
-    status: Status = Field(default=Status.ACTIVE)
+    status: "Status" = Field(default=Status.ACTIVE)
     dron_score: int = Field(ge=0)
     drone_transit_destination: str | None = Field(default=None)
 
@@ -31,9 +32,10 @@ class Drone(BaseModel):
 
         Returns:
             A validated Drone instance.
+
         """
         tmp = {"drone_id": f"D{id}", "current_zone": start_zone, "dron_score": 0}
-        return cls.model_validate(tmp)
+        return cast("Drone", cls.model_validate(tmp))
 
     def decide_next_step(
         self,
@@ -52,6 +54,7 @@ class Drone(BaseModel):
 
         Returns:
             The name of the next zone to move to, or None if no valid path exists.
+
         """
         g: dict[str, float] = {}
         came_from: dict[str, str] = {}
@@ -132,6 +135,7 @@ class WorldState(BaseModel):
 
         Returns:
             An initialized WorldState instance.
+
         """
         drones: list[Drone] = []
         for i in range(1, map_data.nb_drones + 1):
@@ -159,7 +163,7 @@ class WorldState(BaseModel):
             "connection_reservations": connection_reservations,
             "drones": drones,
         }
-        return cls.model_validate(main_data)
+        return cast("WorldState", cls.model_validate(main_data))
 
     def reserve(self, to_zone: str, from_zone: str) -> None:
         """Reserves capacity for a drone moving between two zones.
@@ -167,6 +171,7 @@ class WorldState(BaseModel):
         Args:
             to_zone: Destination zone name.
             from_zone: Origin zone name.
+
         """
         self.zone_reservations[to_zone] = self.zone_reservations.get(to_zone, 0) + 1
         key = f"{from_zone}-{to_zone}"
@@ -190,6 +195,7 @@ class WorldState(BaseModel):
 
         Returns:
             True if capacity allows another drone, False otherwise.
+
         """
         return graph.is_zone_available(
             zone, self.zone_info.get(zone, 0) + self.zone_reservations.get(zone, 0)
@@ -222,6 +228,7 @@ class Simulation(BaseModel):
 
         Returns:
             A ready-to-run Simulation object.
+
         """
         return cls(
             drones=drones, graph=graph, world_state=world_state, map_data=map_data
@@ -231,7 +238,8 @@ class Simulation(BaseModel):
         """Executes the simulation steps until all drones arrive at the destination hub.
 
         Returns:
-            A list of logs, where each log contains string representations of drone actions per step.
+            A list of logs, where each log contains string representations of drone actionsper step.
+
         """
         output: list[list[str]] = []
 
