@@ -83,7 +83,7 @@ class MapData(BaseModel):
         allowed_zones = ["normal", "blocked", "restricted", "priority"]
 
         main_data: dict[str, Any] = {}
-        hubs = []
+        hubs: list[Hub] = []
         connections = []
         req_args = [
             "start_hub_name",
@@ -128,6 +128,8 @@ class MapData(BaseModel):
                     Hub_MetaData(zone=zone, max_drones=max_drones, color=color)
                 )
                 tmp = Hub(hub_name=hub_name, hub_cords=hub_cord, hub_meta_data=metadata)
+                if all(1 for h in hubs if tmp.hub_name == h.hub_name) == 1:
+                    raise ParsingError(f"{tmp.hub_name} is duplicated")
                 hubs.append(tmp)
 
         def load_connections_to_list(
